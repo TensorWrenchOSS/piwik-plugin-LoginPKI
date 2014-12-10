@@ -45,61 +45,68 @@ class LoginPKI extends \Piwik\Plugin {
 
         if($dn != null) {
             $auth = new CertAuth();
+            $previousAuth = \Piwik\Registry::get('auth');
             \Piwik\Registry::set('auth', $auth);
 
             if(!$this->initAuthenticationFromCookie($auth, $activateCookieAuth)) {
                 $result = $clientCertificateAPI->queryGovport($dn);
 
-                $username = $this->getProperty($result, 'uid');
-                $fullname = $this->getProperty($result, 'fullName');
-                $email = $this->getProperty($result, 'email'); 
-                $firstname = $this->getProperty($result, 'firstName');
-                $lastname = $this->getProperty($result, 'lastName');
+                if($result) {
 
-                $agency = null;
-                if(property_exists($result, 'grantBy')) {
-                    $agency = $result->{'grantBy'}[0];
-                }
-                    
-                if($agency == null)
-                {
-                    if(property_exists($result, 'organizations')) {
-                        $agency = $result->{'organizations'}[0];
+                    $username = $this->getProperty($result, 'uid');
+                    $fullname = $this->getProperty($result, 'fullName');
+                    $email = $this->getProperty($result, 'email'); 
+                    $firstname = $this->getProperty($result, 'firstName');
+                    $lastname = $this->getProperty($result, 'lastName');
+
+                    $agency = null;
+                    if(property_exists($result, 'grantBy')) {
+                        $agency = $result->{'grantBy'}[0];
+                    }
+                        
+                    if($agency == null)
+                    {
+                        if(property_exists($result, 'organizations')) {
+                            $agency = $result->{'organizations'}[0];
+                        }
+
+                        if($agency == null) {
+                            $agency = 'N/A';
+                        }
                     }
 
-                    if($agency == null) {
-                        $agency = 'N/A';
+                    \Piwik\Log::debug("Response from GOVPORT:");
+                    \Piwik\Log::debug("user = ".$username);
+                    \Piwik\Log::debug("fullname = ".$fullname);
+                    \Piwik\Log::debug("email = ".$email);
+                    \Piwik\Log::debug("firstname = ".$firstname);
+                    \Piwik\Log::debug("lastname = ".$lastname);
+                    \Piwik\Log::debug("agency = ".$agency);
+
+                    $auth->setLogin($username);
+                    $auth->setTokenAuth(md5($username . $auth->getTokenAuthSecret()));
+                    $auth->setEmail($email);
+                    $auth->setAlias($this->getAlias($firstname, $lastname, $fullname));
+
+                    $authResult = $auth->authenticate();
+                    if($authResult->wasAuthenticationSuccessful()) {
+                        Session::regenerateId();
+
+                        //Create Cookie
+                        $authCookieExpiry = 0; 
+                        $authCookieName = Config::getInstance()->General['login_cookie_name'];
+                        $authCookiePath = Config::getInstance()->General['login_cookie_path'];
+
+                        $cookie = new Cookie($authCookieName, $authCookieExpiry, $authCookiePath);
+                        $cookie->set('login', $authResult->getIdentity());
+                        $cookie->set('token_auth', md5($username . $auth->getTokenAuthSecret()));
+                        $cookie->setSecure(ProxyHttp::isHttps());
+                        $cookie->setHttpOnly(true);
+                        $cookie->save();
                     }
-                }
-
-                \Piwik\Log::debug("Response from GOVPORT:");
-                \Piwik\Log::debug("user = ".$username);
-                \Piwik\Log::debug("fullname = ".$fullname);
-                \Piwik\Log::debug("email = ".$email);
-                \Piwik\Log::debug("firstname = ".$firstname);
-                \Piwik\Log::debug("lastname = ".$lastname);
-                \Piwik\Log::debug("agency = ".$agency);
-
-                $auth->setLogin($username);
-                $auth->setTokenAuth(md5($username . $auth->getTokenAuthSecret()));
-                $auth->setEmail($email);
-                $auth->setAlias($this->getAlias($firstname, $lastname, $fullname));
-
-                $authResult = $auth->authenticate();
-                if($authResult->wasAuthenticationSuccessful()) {
-                    Session::regenerateId();
-
-                    //Create Cookie
-                    $authCookieExpiry = 0; 
-                    $authCookieName = Config::getInstance()->General['login_cookie_name'];
-                    $authCookiePath = Config::getInstance()->General['login_cookie_path'];
-
-                    $cookie = new Cookie($authCookieName, $authCookieExpiry, $authCookiePath);
-                    $cookie->set('login', $authResult->getIdentity());
-                    $cookie->set('token_auth', md5($username . $auth->getTokenAuthSecret()));
-                    $cookie->setSecure(ProxyHttp::isHttps());
-                    $cookie->setHttpOnly(true);
-                    $cookie->save();
+                } else { 
+                    \Piwik\Registry::set('auth', $previousAuth);
+                    \Piwik\Log::debug("Could not contact authorization service. Falling back on standard auth.");
                 }
             }
         } else {
