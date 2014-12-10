@@ -1,0 +1,16 @@
+{
+ "name": "LoginPKI",
+ "version": "0.1.0",
+ "description": "Log into Piwik with your PKI client certificates",
+ "theme": false,
+ "require": {
+    "piwik": ">=2.8.1"
+ },
+ "authors": [
+     {
+         "name": "Piwik",
+         "email": "",
+         "homepage": ""
+     }
+ ]
+}
