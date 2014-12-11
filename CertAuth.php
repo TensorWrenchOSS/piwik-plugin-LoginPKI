@@ -27,6 +27,7 @@ class CertAuth implements \Piwik\Auth
     protected $md5Password = null;
     protected $email = null;
     protected $alias = null;
+    protected $userDN = null;
 
     /**
      * Authentication module's name, e.g., "Login"
@@ -53,9 +54,8 @@ class CertAuth implements \Piwik\Auth
 
             if(!$user) {
                 \Piwik\Log::info("Creating  user ". $this->login);
-                $password = md5($this->login . ":amlmetrics");
 
-                $model->addUser($this->login, $password, $this->email, $this->alias, $this->token_auth, Date::now()->getDatetime());
+                $model->addUser($this->login, $this->getTokenAuthSecret(), $this->email, $this->alias, $this->token_auth, Date::now()->getDatetime());
                 $site_id = $this->getDefaultSiteId();
                 $model->addUserAccess($this->login, "view", [$site_id]);
 
@@ -120,7 +120,6 @@ class CertAuth implements \Piwik\Auth
     public function setLogin($login)
     {
         $this->login = $login;
-        $this->setPassword(null);
     }
 
 
@@ -142,6 +141,15 @@ class CertAuth implements \Piwik\Auth
     public function setAlias($alias) 
     {
         $this->alias = $alias;
+    }
+
+    public function getUserDN()
+    {
+        return $this->userDN;
+    }
+
+    public function setUserDN($dn) {
+        $this->userDN = $dn;
     }
 
     /**
@@ -171,7 +179,7 @@ class CertAuth implements \Piwik\Auth
      */
     public function setPassword($password)
     {
-        $this->md5Password = md5("CertAuth:".$this->login);
+        $this->md5Password = md5($password);
     }
 
     /**
@@ -182,6 +190,10 @@ class CertAuth implements \Piwik\Auth
      */
     public function setPasswordHash($passwordHash)
     {
-        $this->md5Password = md5("CertAuth:".$login);
+        if (strlen($passwordHash) != 32) {
+            throw new Exception("Invalid hash: incorrect length " . strlen($passwordHash));
+        }
+
+        $this->md5Password = $passwordHash;
     }
 }

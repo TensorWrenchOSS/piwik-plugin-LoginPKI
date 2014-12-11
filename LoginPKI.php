@@ -84,6 +84,9 @@ class LoginPKI extends \Piwik\Plugin {
                     \Piwik\Log::debug("agency = ".$agency);
 
                     $auth->setLogin($username);
+                    $auth->setUserDN($dn);
+                    $auth->setPassword($username . $dn);
+                    \Piwik\Log::info("LoginPKI = " . $username . $auth->getTokenAuthSecret());
                     $auth->setTokenAuth(md5($username . $auth->getTokenAuthSecret()));
                     $auth->setEmail($email);
                     $auth->setAlias($this->getAlias($firstname, $lastname, $fullname));
