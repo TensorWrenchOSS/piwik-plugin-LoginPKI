@@ -2,17 +2,33 @@
 
 ## Description
 
-Add your plugin description here.
+This plugin will add the following features to a piwik installation:
 
-## FAQ
+ * Automatic login with verification against authorization service
+ * Defined admin and non-admin roles
+ * Default site for new users to view
 
-__My question?__
-My answer
 
-## Changelog
+LoginPKI plugin will require deployment of the ozone-enhancements branch of piwik as well as the activation of 
+the ClientCertificates plugin.
 
-Here goes the changelog text.
+## Installation
 
-## Support
+* Clone plugin repo into `piwik/plugins/` directory 
+```
+cd piwik/plugins
+git clone <git-url> LoginPKI
+```
 
-Please direct any feedback to ...
+* Add configuration to `config/config.ini.php`
+```
+[LoginPKI]
+superusers[] = "admin"
+superusers[] = "<additional-admin-user>"
+...
+default_site_id = 1
+```
+* Activate plugin by going to web interface, Settings --> Plugins, and then Activate the LoginPKI plugin.
+
+
+Now clients of a Piwik enabled application should be enabled with client certificates.
