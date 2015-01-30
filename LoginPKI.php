@@ -13,7 +13,9 @@ use Piwik\Config;
 use Piwik\Cookie;
 use Piwik\ProxyHttp;
 use Piwik\Session;
+use Piwik\FrontController;
 use Piwik\Plugins\ClientCertificates\API as ClientCertificatesAPI;
+use Piwik\Plugins\Login\API as LoginAPI;
 
 /**
  */
@@ -41,6 +43,7 @@ class LoginPKI extends \Piwik\Plugin {
         \Piwik\Log::debug("PKI AUTHENTICATION");
 
         $clientCertificateAPI = ClientCertificatesAPI::getInstance();
+        $loginAPI = LoginAPI::getInstance();
         $dn = $clientCertificateAPI->getUserDN();
 
         if($dn != null) {
@@ -106,13 +109,18 @@ class LoginPKI extends \Piwik\Plugin {
                         $cookie->setSecure(ProxyHttp::isHttps());
                         $cookie->setHttpOnly(true);
                         $cookie->save();
+                    } else {
+                        // Error message set by auth result
+                        \Piwik\Registry::set('auth', $previousAuth);
                     }
                 } else { 
                     \Piwik\Registry::set('auth', $previousAuth);
+                    $loginAPI->setErrorMessage("Could not contact authorization service");
                     \Piwik\Log::debug("Could not contact authorization service. Falling back on standard auth.");
                 }
             }
         } else {
+            $loginAPI->setErrorMessage("No certificate provided");
             \Piwik\Log::debug("No certificate provided. Falling back on standard login mechanism.");
         }
 

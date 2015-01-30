@@ -16,6 +16,7 @@ use Piwik\Config;
 use Piwik\Plugins\UsersManager\Model;
 use Piwik\Session;
 use Piwik\Plugins\UsersManager\API as UsersManagerAPI;
+use Piwik\Plugins\Login\API as LoginAPI;
 
 /**
  *
@@ -53,13 +54,20 @@ class CertAuth implements \Piwik\Auth
             $user  = $model->getUserByTokenAuth($this->token_auth);
 
             if(!$user) {
-                \Piwik\Log::info("Creating  user ". $this->login);
+                if($this->getViewableUserStatus() || $this->getSuperUserStatus()) {
+                    \Piwik\Log::info("Creating  user ". $this->login);
 
-                $model->addUser($this->login, $this->getTokenAuthSecret(), $this->email, $this->alias, $this->token_auth, Date::now()->getDatetime());
-                $site_id = $this->getDefaultSiteId();
-                $model->addUserAccess($this->login, "view", [$site_id]);
+                    $model->addUser($this->login, $this->getTokenAuthSecret(), $this->email, $this->alias, $this->token_auth, Date::now()->getDatetime());
+                    $site_id = $this->getDefaultSiteId();
+                    $model->addUserAccess($this->login, "view", [$site_id]);
 
-                $user = $model->getUser($this->login);
+                    $user = $model->getUser($this->login);
+                } else {
+                    $loginAPI = LoginAPI::getInstance();
+                    $loginAPI->setLoginMessage("You do not have access to view. Please contact the AppsMall team for access.");
+                    return new AuthResult(AuthResult::FAILURE, $this->login, $this->token_auth);
+                }
+
             }
         }
 
@@ -70,6 +78,25 @@ class CertAuth implements \Piwik\Auth
         $accessCode = $user['superuser_access'] ? AuthResult::SUCCESS_SUPERUSER_AUTH_CODE : AuthResult::SUCCESS;
 
     	return new AuthResult($accessCode, $this->login, $this->token_auth);
+    }
+
+    private function getViewableUserStatus()
+    {
+        $is_viewable_user = false;
+        $loginConfig = Config::getInstance()->LoginPKI;
+        if($loginConfig && array_key_exists('viewable_users',$loginConfig)) {
+            $viewable_users = $loginConfig['viewable_users'];
+
+            foreach ($viewable_users as $viewable_user) {
+                if($viewable_user == $this->login) {
+                    $is_viewable_user = true;
+                }
+            }
+        } else {
+            $is_viewable_user = true;
+        }
+
+        return $is_viewable_user;
     }
 
     private function getSuperUserStatus() 
