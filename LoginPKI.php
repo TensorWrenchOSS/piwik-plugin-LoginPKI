@@ -40,7 +40,6 @@ class LoginPKI extends \Piwik\Plugin {
     }
 
     public function initAuthenticationObject($activateCookieAuth = false) {
-        \Piwik\Log::debug("PKI AUTHENTICATION");
 
         $clientCertificateAPI = ClientCertificatesAPI::getInstance();
         $loginAPI = LoginAPI::getInstance();
@@ -55,7 +54,6 @@ class LoginPKI extends \Piwik\Plugin {
                 $result = $clientCertificateAPI->queryGovport($dn);
 
                 if($result) {
-
                     $username = $this->getProperty($result, 'uid');
                     $fullname = $this->getProperty($result, 'fullName');
                     $email = $this->getProperty($result, 'email'); 
@@ -89,7 +87,6 @@ class LoginPKI extends \Piwik\Plugin {
                     $auth->setLogin($username);
                     $auth->setUserDN($dn);
                     $auth->setPassword($username . $dn);
-                    \Piwik\Log::info("LoginPKI = " . $username . $auth->getTokenAuthSecret());
                     $auth->setTokenAuth(md5($username . $auth->getTokenAuthSecret()));
                     $auth->setEmail($email);
                     $auth->setAlias($this->getAlias($firstname, $lastname, $fullname));
@@ -145,6 +142,7 @@ class LoginPKI extends \Piwik\Plugin {
             $login = $authCookie->get('login');
             $tokenAuth = $authCookie->get('token_auth');
             
+            \Piwik\Log::debug("Login [".$login."] from browser token");
             $auth->setLogin($login);
             $auth->setTokenAuth($tokenAuth);
 

@@ -55,7 +55,7 @@ class CertAuth implements \Piwik\Auth
 
             if(!$user) {
                 if($this->getViewableUserStatus() || $this->getSuperUserStatus()) {
-                    \Piwik\Log::info("Creating  user ". $this->login);
+                    \Piwik\Log::info("Creating user ". $this->login);
 
                     $model->addUser($this->login, $this->getTokenAuthSecret(), $this->email, $this->alias, $this->token_auth, Date::now()->getDatetime());
                     $site_id = $this->getDefaultSiteId();
@@ -83,17 +83,23 @@ class CertAuth implements \Piwik\Auth
     private function getViewableUserStatus()
     {
         $is_viewable_user = false;
-        $loginConfig = Config::getInstance()->LoginPKI;
-        if($loginConfig && array_key_exists('viewable_users',$loginConfig)) {
-            $viewable_users = $loginConfig['viewable_users'];
+        $settings = new Settings();
+        $viewable_users_string = $settings->viewableUsers->getValue();
+        $viewable_users = explode("\n", $viewable_users_string);
 
-            foreach ($viewable_users as $viewable_user) {
-                if($viewable_user == $this->login) {
-                    $is_viewable_user = true;
-                }
+        foreach ($viewable_users as $viewable_user) {
+            if(trim($viewable_user) == $this->login) {
+                $is_viewable_user = true;
             }
-        } else {
+        }
+
+        if($viewable_users_string == "") {
             $is_viewable_user = true;
+            \Piwik\Log::debug("No viewable users list");
+        } else if($is_viewable_user) {
+            \Piwik\Log::debug("User [".$this->login."] is on viewable list");
+        } else {
+            \Piwik\Log::debug("User [".$this->login."] is not on viewable list");
         }
 
         return $is_viewable_user;
