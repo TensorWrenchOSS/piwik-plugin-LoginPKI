@@ -112,8 +112,8 @@ class LoginPKI extends \Piwik\Plugin {
                     }
                 } else { 
                     \Piwik\Registry::set('auth', $previousAuth);
-                    $loginAPI->setErrorMessage("Could not contact authorization service");
-                    \Piwik\Log::debug("Could not contact authorization service. Falling back on standard auth.");
+                    $loginAPI->setErrorMessage("Could not verify user against authorization service");
+                    \Piwik\Log::debug("Could not verify user against authorization service. Falling back on standard auth.");
                 }
             }
         } else {

@@ -17,6 +17,7 @@ use Piwik\Plugins\UsersManager\Model;
 use Piwik\Session;
 use Piwik\Plugins\UsersManager\API as UsersManagerAPI;
 use Piwik\Plugins\Login\API as LoginAPI;
+use Piwik\Plugins\ClientCertificates\API as ClientCertificatesAPI;
 
 /**
  *
@@ -84,23 +85,44 @@ class CertAuth implements \Piwik\Auth
     {
         $is_viewable_user = false;
         $settings = new Settings();
-        $viewable_users_string = $settings->viewableUsers->getValue();
-        $viewable_users = explode("\n", $viewable_users_string);
+        $use_govport_groups = $settings->useGovportGroups->getValue();
+        $group = $settings->govportGroup->getValue();
+        $project = $settings->govportProject->getValue();
 
-        foreach ($viewable_users as $viewable_user) {
-            if(trim($viewable_user) == $this->login) {
+        if($use_govport_groups && $group != "" && $project != "") {
+            \Piwik\Log::debug("Using Govport Groups to get viewable status");
+            $clientCertificateAPI = ClientCertificatesAPI::getInstance();
+
+            $result = $clientCertificateAPI->queryGovportGroup($this->userDN, $group, $project);
+
+            if($result) {
+                $is_viewable_user = $this->getProperty($result, 'isMember');
+                \Piwik\Log::debug("User [".$this->login."] viewable [".Array(false => 'false', true => 'true')[$is_viewable_user] ."]");
+            } else {
+                $loginAPI = LoginAPI::getInstance();
+                $loginAPI->setErrorMessage("Could not verify user against group authorization service");
+            }
+
+        } else {
+            $viewable_users_string = $settings->viewableUsers->getValue();
+            $viewable_users = explode("\n", $viewable_users_string);
+
+            foreach ($viewable_users as $viewable_user) {
+                if(trim($viewable_user) == $this->login) {
+                    $is_viewable_user = true;
+                }
+            }
+            
+            if($viewable_users_string == "") {
                 $is_viewable_user = true;
+                \Piwik\Log::debug("No viewable users list");
+            } else if($is_viewable_user) {
+                \Piwik\Log::debug("User [".$this->login."] is on viewable list");
+            } else {
+                \Piwik\Log::debug("User [".$this->login."] is not on viewable list");
             }
         }
 
-        if($viewable_users_string == "") {
-            $is_viewable_user = true;
-            \Piwik\Log::debug("No viewable users list");
-        } else if($is_viewable_user) {
-            \Piwik\Log::debug("User [".$this->login."] is on viewable list");
-        } else {
-            \Piwik\Log::debug("User [".$this->login."] is not on viewable list");
-        }
 
         return $is_viewable_user;
     }
@@ -132,6 +154,14 @@ class CertAuth implements \Piwik\Auth
             return $loginConfig['default_site_id'];
         } else {
             throw new Exception("Administrator must define a default site id in config.ini.php file.<br/><br/>[LoginPKI]<br/>default_site_id = &lt;site-id&gt;");
+        }
+    }
+
+    private function getProperty($data, $property) {
+        if(property_exists($data, $property)) {
+            return $data->{$property};
+        } else {
+            return null;
         }
     }
 
