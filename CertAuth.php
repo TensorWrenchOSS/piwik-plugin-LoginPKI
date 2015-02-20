@@ -59,8 +59,8 @@ class CertAuth implements \Piwik\Auth
                     \Piwik\Log::info("Creating user ". $this->login);
 
                     $model->addUser($this->login, $this->getTokenAuthSecret(), $this->email, $this->alias, $this->token_auth, Date::now()->getDatetime());
-                    $site_id = $this->getDefaultSiteId();
-                    $model->addUserAccess($this->login, "view", [$site_id]);
+                    $site_ids = $this->getDefaultSiteIds();
+                    $model->addUserAccess($this->login, "view", $site_ids);
 
                     $user = $model->getUser($this->login);
                 } else {
@@ -147,13 +147,13 @@ class CertAuth implements \Piwik\Auth
         }
     }
 
-    private function getDefaultSiteId() 
+    private function getDefaultSiteIds() 
     {
         $loginConfig = Config::getInstance()->LoginPKI;
-        if($loginConfig && array_key_exists('default_site_id',$loginConfig)) {
-            return $loginConfig['default_site_id'];
+        if($loginConfig && array_key_exists('default_site_ids',$loginConfig)) {
+            return $loginConfig['default_site_ids'];
         } else {
-            throw new Exception("Administrator must define a default site id in config.ini.php file.<br/><br/>[LoginPKI]<br/>default_site_id = &lt;site-id&gt;");
+            throw new Exception("Administrator must define a default site id in config.ini.php file.<br/><br/>[LoginPKI]<br/>default_site_ids[] = &lt;site-id&gt;");
         }
     }
 
