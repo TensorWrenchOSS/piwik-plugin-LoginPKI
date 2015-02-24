@@ -24,10 +24,7 @@ class LoginPKI extends \Piwik\Plugin {
 	public function getListHooksRegistered() {
         return array(
             'Request.initAuthenticationObject' => 'initAuthenticationObject',
-            // 'User.isNotAuthorized'             => 'noAccess',
-            'API.Request.authenticate'         => 'ApiRequestAuthenticate',
-            'UsersManager.allowPasswordChange' => 'allowPasswordChange',
-            'View.allowSignout'                => 'allowSignout'
+            'API.Request.authenticate'         => 'ApiRequestAuthenticate'
         );
     }
 
