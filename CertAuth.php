@@ -97,7 +97,8 @@ class CertAuth implements \Piwik\Auth
 
             if($result) {
                 $is_viewable_user = $this->getProperty($result, 'isMember');
-                \Piwik\Log::debug("User [".$this->login."] viewable [".Array(false => 'false', true => 'true')[$is_viewable_user] ."]");
+                $bool_array = Array(false => 'false', true => 'true');
+                \Piwik\Log::debug("User [".$this->login."] viewable [".$bool_array[$is_viewable_user] ."]");
             } else {
                 $loginAPI = LoginAPI::getInstance();
                 $loginAPI->setErrorMessage("Could not verify user against group authorization service");
