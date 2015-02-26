@@ -73,13 +73,7 @@ class LoginPKI extends \Piwik\Plugin {
                         }
                     }
 
-                    \Piwik\Log::debug("Response from GOVPORT:");
-                    \Piwik\Log::debug("user = ".$username);
-                    \Piwik\Log::debug("fullname = ".$fullname);
-                    \Piwik\Log::debug("email = ".$email);
-                    \Piwik\Log::debug("firstname = ".$firstname);
-                    \Piwik\Log::debug("lastname = ".$lastname);
-                    \Piwik\Log::debug("agency = ".$agency);
+                    \Piwik\Log::debug("Login PKI Response: $username, $fullname, $email, $firstname, $lastname, $agency");
 
                     $auth->setLogin($username);
                     $auth->setUserDN($dn);
@@ -127,10 +121,6 @@ class LoginPKI extends \Piwik\Plugin {
 
     private static function initAuthenticationFromCookie(\Piwik\Auth $auth, $activateCookieAuth)
     {
-        if (self::isModuleIsAPI() && !$activateCookieAuth) {
-            return false;
-        }
-
         $authCookieName = Config::getInstance()->General['login_cookie_name'];
         $authCookieExpiry = 0;
         $authCookiePath = Config::getInstance()->General['login_cookie_path'];
