@@ -18,6 +18,7 @@ use Piwik\Session;
 use Piwik\Plugins\UsersManager\API as UsersManagerAPI;
 use Piwik\Plugins\Login\API as LoginAPI;
 use Piwik\Plugins\ClientCertificates\API as ClientCertificatesAPI;
+use Piwik\Container\StaticContainer;
 
 /**
  *
@@ -48,6 +49,7 @@ class CertAuth implements \Piwik\Auth
      */
     public function authenticate()
     {
+        $logger = StaticContainer::get('Psr\Log\LoggerInterface');
         $model = new Model();
         $user = $model->getUser($this->login);
         
@@ -55,28 +57,42 @@ class CertAuth implements \Piwik\Auth
             $user  = $model->getUserByTokenAuth($this->token_auth);
 
             if(!$user) {
-                if($this->getViewableUserStatus() || $this->getSuperUserStatus()) {
-                    \Piwik\Log::info("Creating user ". $this->login);
-
-                    $model->addUser($this->login, $this->getTokenAuthSecret(), $this->email, $this->alias, $this->token_auth, Date::now()->getDatetime());
-                    $site_ids = $this->getDefaultSiteIds();
-                    $model->addUserAccess($this->login, "view", $site_ids);
-
-                    $user = $model->getUser($this->login);
-                } else {
-                    $loginAPI = LoginAPI::getInstance();
-                    $loginAPI->setLoginMessage("You do not have access to view. Please contact the AppsMall team for access.");
-                    return new AuthResult(AuthResult::FAILURE, $this->login, $this->token_auth);
-                }
-
+                $logger->info("Creating user ". $this->login);
+                $model->addUser($this->login, $this->getTokenAuthSecret(), $this->email, $this->alias, $this->token_auth, Date::now()->getDatetime());
+                $user = $model->getUser($this->login);
             }
         }
 
+
+        $accessCode = $user['superuser_access'] ? AuthResult::SUCCESS_SUPERUSER_AUTH_CODE : AuthResult::SUCCESS;
         $this->login = $user['login'];
+        if($this->getViewableUserStatus() || $this->getSuperUserStatus()) {
+            $site_ids = $this->getDefaultSiteIds();
+            $current_accesses = array();
+            foreach ($site_ids as $site_id) {
+                $accesses = $model->getUsersAccessFromSite($site_id);
+                foreach ($accesses as $user => $access) {
+                    if($this->login == $user && $access == "view") {
+                        $current_accesses[] = $site_id;
+                    }
+                }
+            }
+
+            $new_accesses = array();
+            foreach ($site_ids as $site_id) {
+                if(!in_array($site_id, $current_accesses)) {
+                    $new_accesses[] = $site_id;
+                }
+            }
+            if(count($new_accesses) > 0) {
+                $logger->info("Adding default site ids to ". $this->login);
+                $model->addUserAccess($this->login, "view", $new_accesses);
+            }
+        }
+
         $is_superuser = $this->getSuperUserStatus();
         $model->setSuperUserAccess($this->login, $is_superuser);
 
-        $accessCode = $user['superuser_access'] ? AuthResult::SUCCESS_SUPERUSER_AUTH_CODE : AuthResult::SUCCESS;
 
     	return new AuthResult($accessCode, $this->login, $this->token_auth);
     }

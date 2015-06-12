@@ -9,6 +9,7 @@
 namespace Piwik\Plugins\LoginPKI;
 
 use Piwik\Piwik;
+use Piwik\Menu\MenuTop;
 
 class Menu extends \Piwik\Plugin\Menu
 {
@@ -16,4 +17,5 @@ class Menu extends \Piwik\Plugin\Menu
     {
     	$menu->remove('General_Logout');
     }
+
 }
