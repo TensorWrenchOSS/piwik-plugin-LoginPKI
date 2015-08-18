@@ -72,7 +72,7 @@ class CertAuth implements \Piwik\Auth
             foreach ($site_ids as $site_id) {
                 $accesses = $model->getUsersAccessFromSite($site_id);
                 foreach ($accesses as $user => $access) {
-                    if($this->login == $user && $access == "view") {
+                    if($this->login == $user && ($access == "view" || $access == 'admin')) {
                         $current_accesses[] = $site_id;
                     }
                 }
