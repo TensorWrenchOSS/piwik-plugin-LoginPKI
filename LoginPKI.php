@@ -41,6 +41,7 @@ class LoginPKI extends \Piwik\Plugin {
         $clientCertificateAPI = ClientCertificatesAPI::getInstance();
         $loginAPI = LoginAPI::getInstance();
         $dn = $clientCertificateAPI->getUserDN();
+        $issuer_dn = $clientCertificateAPI->getIssuerDN();
 
         if($dn != null) {
             $auth = new CertAuth();
@@ -48,7 +49,7 @@ class LoginPKI extends \Piwik\Plugin {
             \Piwik\Registry::set('auth', $auth);
 
             if(!$this->initAuthenticationFromCookie($auth, $activateCookieAuth)) {
-                $result = $clientCertificateAPI->queryGovport($dn);
+                $result = $clientCertificateAPI->queryGovport($dn, $issuer_dn);
 
                 if($result) {
                     $username = $this->getProperty($result, 'uid');
